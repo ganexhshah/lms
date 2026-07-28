@@ -1,0 +1,167 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: vellum-php:8.3
+    pull_policy: never
+    container_name: vellum-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      # Linux-native volume — huge win on Windows bind mounts
+      - vellum_vendor:/var/www/html/vendor
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      MAIL_HOST: mailpit
+      RUN_MIGRATIONS: "1"
+      RUN_SEEDERS: "1"
+      SKIP_SETUP: "0"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - vellum
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: vellum-nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html
+      - vellum_vendor:/var/www/html/vendor
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - vellum
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: vellum-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-vellum}
+      POSTGRES_USER: ${DB_USERNAME:-vellum}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    volumes:
+      - vellum_pgdata:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - checkpoint_completion_target=0.9
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-vellum} -d ${DB_DATABASE:-vellum}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - vellum
+
+  redis:
+    image: redis:7-alpine
+    container_name: vellum-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - vellum_redis:/data
+    networks:
+      - vellum
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: vellum-mailpit
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_MAILPIT_UI_PORT:-8025}:8025"
+      - "${FORWARD_MAILPIT_SMTP_PORT:-1025}:1025"
+    networks:
+      - vellum
+
+  queue:
+    image: vellum-php:8.3
+    pull_policy: never
+    container_name: vellum-queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work --sleep=1 --tries=3 --max-time=3600 --memory=256
+    volumes:
+      - ./:/var/www/html
+      - vellum_vendor:/var/www/html/vendor
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      MAIL_HOST: mailpit
+      SKIP_SETUP: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    networks:
+      - vellum
+
+  scheduler:
+    image: vellum-php:8.3
+    pull_policy: never
+    container_name: vellum-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan schedule:work
+    volumes:
+      - ./:/var/www/html
+      - vellum_vendor:/var/www/html/vendor
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      MAIL_HOST: mailpit
+      SKIP_SETUP: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    networks:
+      - vellum
+
+networks:
+  vellum:
+    driver: bridge
+
+volumes:
+  vellum_pgdata:
+  vellum_redis:
+  vellum_vendor:
