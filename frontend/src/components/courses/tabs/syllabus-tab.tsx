@@ -23,20 +23,24 @@ export function SyllabusTab({ course }: SyllabusTabProps) {
   const [hours, setHours] = useState(4);
   const [description, setDescription] = useState("");
 
-  function add() {
+  async function add() {
     if (!title.trim()) {
       toast.error("Module title is required");
       return;
     }
-    addSyllabusItem(course.id, {
-      title: title.trim(),
-      hours,
-      description: description.trim(),
-    });
-    setTitle("");
-    setHours(4);
-    setDescription("");
-    toast.success("Syllabus module added");
+    try {
+      await addSyllabusItem(course.id, {
+        title: title.trim(),
+        hours,
+        description: description.trim(),
+      });
+      setTitle("");
+      setHours(4);
+      setDescription("");
+      toast.success("Syllabus module added");
+    } catch {
+      toast.error("Could not add syllabus module");
+    }
   }
 
   return (

@@ -217,7 +217,7 @@ function CertificatesInner() {
         (design.meta?.certificate_number as string | undefined) ||
         design.subjectKey ||
         "";
-      createCertificate({
+      await createCertificate({
         studentId: input.studentId,
         student: input.student,
         course: (design.meta?.course as string | undefined) || input.course,
@@ -403,7 +403,7 @@ function CertificatesInner() {
         const source = items[index];
         if (result.success && result.design) {
           successCount += 1;
-          createCertificate({
+          await createCertificate({
             studentId: source.studentId,
             student: source.student,
             course:
@@ -453,7 +453,7 @@ function CertificatesInner() {
       if (useCanva && canva?.connected && canva.certificateTemplate) {
         await generateWithCanva(payload);
       } else {
-        createCertificate({
+        await createCertificate({
           studentId: payload.studentId,
           student: payload.student,
           course: payload.course,
@@ -467,14 +467,14 @@ function CertificatesInner() {
       if (useCanva && canva?.connected && canva.certificateTemplate) {
         await generateBulkWithCanva(payload);
       } else {
-        payload.forEach((item) => {
-          createCertificate({
+        for (const item of payload) {
+          await createCertificate({
             studentId: item.studentId,
             student: item.student,
             course: item.course,
             issuedAt: item.issuedAt,
           });
-        });
+        }
         toast.success(`Generated ${payload.length} certificate(s)`);
       }
     }
@@ -686,9 +686,13 @@ function CertificatesInner() {
                           {c.status === "pending" ? (
                             <Button
                               size="xs"
-                              onClick={() => {
-                                issueCertificate(c.id);
-                                toast.success("Certificate issued");
+                              onClick={async () => {
+                                try {
+                                  await issueCertificate(c.id);
+                                  toast.success("Certificate issued");
+                                } catch {
+                                  toast.error("Could not issue certificate");
+                                }
                               }}
                             >
                               Issue
@@ -924,9 +928,9 @@ function CertificatesInner() {
           items={bulkHtmlItems}
           onProgress={(done, total) => setBulkProgress({ done, total })}
           onError={(msg) => toast.error(msg)}
-          onComplete={(results) => {
-            results.forEach((r) => {
-              createCertificate({
+          onComplete={async (results) => {
+            for (const r of results) {
+              await createCertificate({
                 studentId: r.studentId,
                 student: r.studentName,
                 course: r.course,
@@ -934,7 +938,7 @@ function CertificatesInner() {
                 issuedAt: r.issuedAt,
                 pdfUrl: r.pdfUrl,
               });
-            });
+            }
             toast.success(
               `Generated ${results.length} certificate(s) with final style`
             );

@@ -366,7 +366,7 @@ export function CertificateStudio({
       );
 
       if (certificateId) {
-        updateCertificate(certificateId, {
+        await updateCertificate(certificateId, {
           studentId: next.studentId || "",
           student: next.studentName,
           course: next.course,
@@ -377,7 +377,7 @@ export function CertificateStudio({
           editUrl: null,
         });
       } else {
-        const created = createCertificate({
+        const created = await createCertificate({
           studentId: next.studentId || "",
           student: next.studentName,
           course: next.course,

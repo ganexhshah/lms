@@ -41,49 +41,57 @@ export default function LandingAdminPage() {
     setDraft(useLandingContentStore.getState().content);
   }
 
-  function saveGeneral() {
-    updateContent({
-      brandName: draft.brandName,
-      heroEyebrow: draft.heroEyebrow,
-      heroHeadline: draft.heroHeadline,
-      heroSubtext: draft.heroSubtext,
-      discountBadge: draft.discountBadge,
-      aboutTitle: draft.aboutTitle,
-      aboutSubtitle: draft.aboutSubtitle,
-      aboutBody: draft.aboutBody,
-      aboutImage1: draft.aboutImage1,
-      aboutImage2: draft.aboutImage2,
-      eventsTitle: draft.eventsTitle,
-      eventsSubtitle: draft.eventsSubtitle,
-      eventsBody: draft.eventsBody,
-      coursesSectionEyebrow: draft.coursesSectionEyebrow,
-      coursesSectionTitle: draft.coursesSectionTitle,
-      contactTitle: draft.contactTitle,
-      contactSubtext: draft.contactSubtext,
-      footerBlurb: draft.footerBlurb,
-    });
-    toast.success("Landing content saved");
+  async function saveGeneral() {
+    try {
+      await updateContent({
+        brandName: draft.brandName,
+        heroEyebrow: draft.heroEyebrow,
+        heroHeadline: draft.heroHeadline,
+        heroSubtext: draft.heroSubtext,
+        discountBadge: draft.discountBadge,
+        aboutTitle: draft.aboutTitle,
+        aboutSubtitle: draft.aboutSubtitle,
+        aboutBody: draft.aboutBody,
+        aboutImage1: draft.aboutImage1,
+        aboutImage2: draft.aboutImage2,
+        eventsTitle: draft.eventsTitle,
+        eventsSubtitle: draft.eventsSubtitle,
+        eventsBody: draft.eventsBody,
+        coursesSectionEyebrow: draft.coursesSectionEyebrow,
+        coursesSectionTitle: draft.coursesSectionTitle,
+        contactTitle: draft.contactTitle,
+        contactSubtext: draft.contactSubtext,
+        footerBlurb: draft.footerBlurb,
+      });
+      toast.success("Landing content saved");
+    } catch {
+      toast.error("Could not save landing content");
+    }
   }
 
-  function toggleFeatured(id: string, on: boolean) {
+  async function toggleFeatured(id: string, on: boolean) {
     const current = content.featuredCourseIds;
     const next = on
       ? current.includes(id)
         ? current
         : [...current, id]
       : current.filter((x) => x !== id);
-    setFeaturedCourseIds(next);
-    setCourseMeta(id, {
-      showOnLanding: on,
-      tag: content.courseMeta[id]?.tag || levelToTag(
-        courses.find((c) => c.id === id)?.level || "beginner"
-      ),
-      coverImage:
-        content.courseMeta[id]?.coverImage ||
-        "/landing/landing-course-barista.png",
-      rating: content.courseMeta[id]?.rating ?? 4.8,
-    });
-    toast.success(on ? "Course shown on landing" : "Course hidden from landing");
+    try {
+      await setFeaturedCourseIds(next);
+      await setCourseMeta(id, {
+        showOnLanding: on,
+        tag: content.courseMeta[id]?.tag || levelToTag(
+          courses.find((c) => c.id === id)?.level || "beginner"
+        ),
+        coverImage:
+          content.courseMeta[id]?.coverImage ||
+          "/landing/landing-course-barista.png",
+        rating: content.courseMeta[id]?.rating ?? 4.8,
+      });
+      toast.success(on ? "Course shown on landing" : "Course hidden from landing");
+    } catch {
+      toast.error("Could not update featured courses");
+    }
   }
 
   return (

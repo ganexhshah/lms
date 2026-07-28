@@ -80,7 +80,7 @@ export default function TimetablePage() {
     setOpen(true);
   }
 
-  function save() {
+  async function save() {
     if (!form.course.trim() || !form.time.trim()) {
       toast.error("Course and time are required");
       return;

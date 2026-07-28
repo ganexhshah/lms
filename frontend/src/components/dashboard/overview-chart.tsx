@@ -31,6 +31,11 @@ export function OverviewChart({ data }: OverviewChartProps) {
         />
       </CardHeader>
       <CardContent className="h-64 pt-2">
+        {data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            No enrollment data yet
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -87,6 +92,7 @@ export function OverviewChart({ data }: OverviewChartProps) {
             />
           </LineChart>
         </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
